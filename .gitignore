@@ -3,6 +3,9 @@ __pycache__/
 *.py[codz]
 *$py.class
 
+# Usage statistics
+usage_stats.json
+
 # C extensions
 *.so
 

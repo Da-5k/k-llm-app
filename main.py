@@ -3,7 +3,8 @@ import openai
 import os
 from dotenv import load_dotenv
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
+import time
 
 # 環境変数を読み込み
 load_dotenv()
@@ -13,56 +14,228 @@ openai.api_key = os.getenv('OPENAI_API_KEY')
 
 # ページ設定
 st.set_page_config(
-    page_title="DAIGO & RIN AI",
-    page_icon="💒",
+    page_title="Daigo & Rin AI",
+    page_icon="🤖",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
 # カスタムCSS
 st.markdown("""
 <style>
+    /* 全体の背景を青ベースに */
+    .stApp {
+        background: linear-gradient(135deg, #1E3A8A, #3B82F6);
+        min-height: 100vh;
+    }
+    
+    /* メインコンテンツエリアの背景を透明に変更 */
+    .main .block-container {
+        background: transparent;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-top: 1rem;
+        max-width: 100%;
+    }
+    
+    /* 青い背景の文字を白に */
+    .main {
+        color: white;
+    }
+    
+    .stMarkdown, .stWrite, .stText, p, div {
+        color: white !important;
+    }
+    
+    /* スマホ対応: 小さい画面での調整 */
+    @media (max-width: 768px) {
+        .main .block-container {
+            padding: 1rem;
+            margin: 0.5rem;
+            border-radius: 10px;
+        }
+        
+        .main-header {
+            font-size: 2rem !important;
+            margin-bottom: 1rem !important;
+        }
+        
+        .couple-info, .question-box, .answer-box {
+            padding: 1rem !important;
+            margin: 0.5rem 0 !important;
+        }
+        
+        .stButton > button {
+            width: 100%;
+            padding: 0.75rem 1rem !important;
+            font-size: 1rem;
+        }
+        
+        .stTextArea textarea {
+            min-height: 100px !important;
+        }
+    }
+    
+    /* サイドバーのスタイル */
+    .css-1d391kg {
+        background: #3B82F6;
+    }
+    
+    .css-1d391kg .element-container {
+        color: white;
+    }
+    
+    /* スマホでのサイドバー調整 */
+    @media (max-width: 768px) {
+        .css-1d391kg {
+            padding: 1rem 0.5rem;
+        }
+    }
+    
+    /* ヘッダーのスタイル */
     .main-header {
         text-align: center;
-        color: #8B4513;
-        font-size: 3rem;
+        color: white !important;
+        font-size: 2.5rem;
         font-weight: bold;
-        margin-bottom: 2rem;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 1.5rem;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        line-height: 1.2;
     }
-    .couple-info {
-        background: linear-gradient(135deg, #FFE4E1, #FFF8DC);
-        padding: 1.5rem;
-        border-radius: 15px;
-        border: 2px solid #DAA520;
-        margin: 1rem 0;
+    
+    /* セクションタイトルの濃い黄色 */
+    .section-title {
+        color: #FFD600 !important;
+        font-weight: bold;
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
     }
-    .question-box {
-        background: linear-gradient(135deg, #F0F8FF, #E6E6FA);
-        padding: 1.5rem;
-        border-radius: 15px;
-        border: 2px solid #4169E1;
-        margin: 1rem 0;
-    }
+    
+    /* 回答ボックス */
     .answer-box {
-        background: linear-gradient(135deg, #F5FFFA, #F0FFF0);
-        padding: 1.5rem;
-        border-radius: 15px;
-        border: 2px solid #32CD32;
+        background: linear-gradient(135deg, #FEF9E7, #FFFFFF);
+        padding: 1.2rem;
+        border-radius: 12px;
+        border: 3px solid #EAB308;
         margin: 1rem 0;
+        box-shadow: 0 4px 16px rgba(234, 179, 8, 0.2);
     }
+    
+    .answer-box * {
+        color: #1F2937 !important;
+    }
+    
+    /* ボタンのスタイル */
     .stButton > button {
-        background: linear-gradient(135deg, #FFB6C1, #FFC0CB);
-        color: #8B4513;
+        background: #000000;
+        color: white;
         font-weight: bold;
         border: none;
         border-radius: 25px;
-        padding: 0.5rem 2rem;
+        padding: 0.75rem 2rem;
         transition: all 0.3s ease;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+        font-size: 1rem;
     }
+    
     .stButton > button:hover {
-        background: linear-gradient(135deg, #FFC0CB, #FFB6C1);
+        background: #333333;
         transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+    }
+    
+    /* サイドバーのテキスト色を白に */
+    .css-1d391kg h1, .css-1d391kg h2, .css-1d391kg h3 {
+        color: white !important;
+    }
+    
+    .css-1d391kg p, .css-1d391kg div {
+        color: white !important;
+    }
+    
+    /* サイドバーの強調文字 */
+    .css-1d391kg strong {
+        color: white !important;
+    }
+    
+    /* 右カラムの白背景を削除 */
+    .right-column {
+        background: transparent;
+        color: white !important;
+        padding: 1.2rem;
+        border-radius: 12px;
+        margin-bottom: 1rem;
+    }
+    
+    .right-column * {
+        color: white !important;
+    }
+    
+    .right-column h3 {
+        color: white !important;
+        font-weight: bold;
+    }
+    
+    /* インフォボックスの色調整 */
+    .stInfo {
+        background: rgba(255, 255, 255, 0.1);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        color: white !important;
+    }
+    
+    .stInfo * {
+        color: white !important;
+    }
+    
+    /* テキストエリアのスタイル調整 */
+    .stTextArea textarea {
+        border-radius: 10px;
+        border: 2px solid #EAB308;
+        font-size: 1rem;
+        background-color: white;
+        color: #1F2937;
+    }
+    
+    /* ラベルの色調整 */
+    .stTextArea label {
+        color: #1F2937 !important;
+    }
+    
+    /* スマホでの文字サイズ調整 */
+    @media (max-width: 768px) {
+        .stMarkdown p, .stWrite p {
+            font-size: 0.9rem;
+        }
+        
+        .stSubheader {
+            font-size: 1.2rem;
+        }
+    }
+    
+    /* カラムレイアウトのスマホ対応 */
+    @media (max-width: 768px) {
+        .row-widget.stHorizontal {
+            flex-direction: column !important;
+        }
+        
+        .element-container {
+            width: 100% !important;
+        }
+    }
+    
+    /* 右側カラムの文字色調整 */
+    .right-column {
+        color: #1F2937 !important;
+    }
+    
+    /* サブヘッダーの色調整 */
+    h2, h3 {
+        color: white !important;
+    }
+    
+    /* 使い方セクションの背景調整 */
+    .element-container h3 {
+        color: white !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -79,6 +252,85 @@ def load_couple_info():
         st.error("couple_info.jsonファイルの形式が正しくありません。")
         return {}
 
+def load_usage_stats():
+    """使用統計を読み込み"""
+    try:
+        with open('usage_stats.json', 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {
+            "daily_requests": {},
+            "last_reset": datetime.now().strftime("%Y-%m-%d")
+        }
+    except json.JSONDecodeError:
+        return {
+            "daily_requests": {},
+            "last_reset": datetime.now().strftime("%Y-%m-%d")
+        }
+
+def save_usage_stats(stats):
+    """使用統計を保存"""
+    try:
+        with open('usage_stats.json', 'w', encoding='utf-8') as f:
+            json.dump(stats, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        st.warning(f"使用統計の保存に失敗しました: {str(e)}")
+
+def check_usage_limits():
+    """使用制限をチェック"""
+    stats = load_usage_stats()
+    today = datetime.now().strftime("%Y-%m-%d")
+    
+    # 日次リセット
+    if stats["last_reset"] != today:
+        stats["daily_requests"] = {}
+        stats["last_reset"] = today
+        save_usage_stats(stats)
+    
+    # 本日の使用回数をチェック
+    today_requests = stats["daily_requests"].get(today, 0)
+    
+    # 制限値の設定（5,000円以内 = 約2,500-3,000回）
+    # GPT-3.5-turbo: 約$0.002/回 → 2,500回で$5 ≈ 5,000円
+    DAILY_LIMIT = 2500  # 1日あたり2500回（安全マージン含む）
+    
+    if today_requests >= DAILY_LIMIT:
+        return False, f"本日の使用回数上限（{DAILY_LIMIT}回）に達しました。明日再度お試しください。"
+    
+    return True, ""
+
+def check_rate_limit():
+    """レート制限をチェック（連続リクエスト防止）"""
+    current_time = time.time()
+    time_since_last = current_time - st.session_state.last_request_time
+    
+    # 2秒以内の連続リクエストを制限（複数名同時使用を考慮して短縮）
+    MIN_INTERVAL = 2
+    
+    if time_since_last < MIN_INTERVAL:
+        remaining_time = MIN_INTERVAL - time_since_last
+        return False, f"少し時間をおいてから再度お試しください。（あと{remaining_time:.0f}秒）"
+    
+    # セッション内での連続リクエスト制限を緩和（1セッションあたり最大20回）
+    SESSION_LIMIT = 20
+    if st.session_state.request_count_session >= SESSION_LIMIT:
+        return False, f"1回のセッションでは最大{SESSION_LIMIT}回までの質問が可能です。ページをリロードしてください。"
+    
+    return True, ""
+
+def increment_usage():
+    """使用回数をインクリメント"""
+    stats = load_usage_stats()
+    today = datetime.now().strftime("%Y-%m-%d")
+    
+    # 本日の使用回数を増加
+    if today not in stats["daily_requests"]:
+        stats["daily_requests"][today] = 0
+    stats["daily_requests"][today] += 1
+    
+    save_usage_stats(stats)
+    return stats
+
 def initialize_session_state():
     """セッション状態を初期化"""
     if 'couple_info' not in st.session_state:
@@ -86,6 +338,12 @@ def initialize_session_state():
     
     if 'qa_history' not in st.session_state:
         st.session_state.qa_history = []
+    
+    if 'last_request_time' not in st.session_state:
+        st.session_state.last_request_time = 0
+    
+    if 'request_count_session' not in st.session_state:
+        st.session_state.request_count_session = 0
 
 def create_couple_profile():
     """新郎新婦のプロフィールを作成"""
@@ -197,22 +455,35 @@ def create_couple_profile():
 def get_ai_response(question, couple_profile):
     """OpenAI APIを使用してAIの回答を生成"""
     try:
+        # 使用制限チェック
+        usage_ok, usage_msg = check_usage_limits()
+        if not usage_ok:
+            return usage_msg
+        
+        # レート制限チェック
+        rate_ok, rate_msg = check_rate_limit()
+        if not rate_ok:
+            return rate_msg
+        
         client = openai.OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
         
         system_prompt = f"""
-あなたは結婚式の披露宴で質問に答える新郎新婦です。
-以下の情報を基に、新郎新婦として直接回答してください。
+あなたは新郎新婦（大悟と凜）について詳しく知っているAIアシスタントです。
+以下の情報を基に、新郎新婦に関する質問に答えてください。
 
 新郎新婦の情報:
 {couple_profile}
 
 回答する際の注意事項:
-- 新郎新婦の一人称で回答する（「私たち」「僕」「私」を使用）
-- 自然で親しみやすい口調で答える
-- 感謝の気持ちを込める
+- 新郎新婦の代わりに回答するのではなく、二人について詳しく知っているAIとして回答する
+- 「大悟さんと凜さんは〜」「お二人は〜」という形で客観的に説明する
+- 敬語を使い、丁寧で親しみやすい口調で回答する
+- 「です」「ます」調で答える
 - 具体的なエピソードがあれば含める
-- 回答は150-200文字程度にまとめる
-- 質問の内容に応じて、新郎または新婦、または二人で答えるかを判断する
+- 回答は100-150文字程度で簡潔にまとめ、必ず文章として完結させる
+- 情報にない内容については推測せず、「詳しい情報がありません」と答える
+- 結婚式のゲストに向けた温かい雰囲気で回答する
+- 回答は必ず「。」で終わるように完結した文章にする
 """
 
         response = client.chat.completions.create(
@@ -221,61 +492,55 @@ def get_ai_response(question, couple_profile):
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": question}
             ],
-            max_tokens=300,
-            temperature=0.7
+            max_tokens=150,  # トークン数を適切に調整
+            temperature=0.7,
+            stop=["。\n", "\n\n"]  # 文の終わりで適切に停止
         )
         
-        return response.choices[0].message.content.strip()
+        # 使用回数をインクリメント
+        increment_usage()
+        
+        # セッション内の使用回数とタイムスタンプを更新
+        st.session_state.last_request_time = time.time()
+        st.session_state.request_count_session += 1
+        
+        # 回答の後処理：文章が途中で切れている場合の対処
+        answer = response.choices[0].message.content.strip()
+        
+        # 文章が「。」で終わっていない場合は、適切に終了させる
+        if answer and not answer.endswith('。'):
+            # 最後の完全な文を取得
+            sentences = answer.split('。')
+            if len(sentences) > 1:
+                # 最後の不完全な文を除去
+                answer = '。'.join(sentences[:-1]) + '。'
+            else:
+                # 単一の不完全な文の場合は「。」を追加
+                answer = answer.rstrip('、') + '。'
+        
+        return answer
     
     except Exception as e:
         return f"申し訳ございません。システムエラーが発生しました: {str(e)}"
+
+def detect_mobile():
+    """モバイルデバイスを検出"""
+    # Streamlitではブラウザの情報を直接取得できないため、
+    # 画面サイズに基づいてレスポンシブ対応を行う
+    return False  # デフォルトはデスクトップ表示
 
 def main():
     """メイン関数"""
     initialize_session_state()
     
+    # モバイル検出（実際の実装では JavaScript が必要）
+    st.session_state.mobile_view = detect_mobile()
+    
     # ヘッダー
-    st.markdown('<h1 class="main-header">DAIGO & RIN AI</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 class="main-header">Daigo & Rin AI</h1>', unsafe_allow_html=True)
     
-    # サイドバーで新郎新婦の情報を表示
-    with st.sidebar:
-        st.header("新郎新婦の情報")
-        
-        if st.session_state.couple_info:
-            # 新しい構造に対応した基本情報の表示
-            if 'basic_info' in st.session_state.couple_info:
-                basic_info = st.session_state.couple_info['basic_info']
-                if 'groom' in basic_info:
-                    st.write(f"**新郎:** {basic_info['groom'].get('name', '')}")
-                if 'bride' in basic_info:
-                    st.write(f"**新婦:** {basic_info['bride'].get('name', '')}")
-                
-                # 結婚式情報の表示
-                if 'wedding_info' in st.session_state.couple_info:
-                    wedding_info = st.session_state.couple_info['wedding_info']
-                    if wedding_info.get('date'):
-                        st.write(f"**結婚式:** {wedding_info['date']}")
-                    if wedding_info.get('venue'):
-                        st.write(f"**会場:** {wedding_info['venue']}")
-            
-            # 旧形式との互換性維持
-            if 'groom_name' in st.session_state.couple_info:
-                st.write(f"**新郎:** {st.session_state.couple_info.get('groom_name', '')}")
-            if 'bride_name' in st.session_state.couple_info:
-                st.write(f"**新婦:** {st.session_state.couple_info.get('bride_name', '')}")
-            if 'wedding_date' in st.session_state.couple_info:
-                st.write(f"**結婚式:** {st.session_state.couple_info.get('wedding_date', '')}")
-            if 'venue' in st.session_state.couple_info:
-                st.write(f"**会場:** {st.session_state.couple_info.get('venue', '')}")
-        else:
-            st.warning("couple_info.jsonから情報を読み込めませんでした。")
-        
-        if st.button("情報を再読み込み"):
-            st.session_state.couple_info = load_couple_info()
-            st.success("情報を再読み込みしました！")
-    
-    # メインエリア
-    col1, col2 = st.columns([2, 1])
+    # メインエリア - スマホ対応
+    col1, col2 = st.columns([3, 1])
     
     with col1:
         # 新郎新婦の情報表示
@@ -287,13 +552,12 @@ def main():
             basic_info = couple_info['basic_info']
             if basic_info.get('groom', {}).get('name') or basic_info.get('bride', {}).get('name'):
                 display_info = True
-                st.markdown('<div class="couple-info">', unsafe_allow_html=True)
-                st.subheader("新郎新婦のご紹介")
+                st.markdown('<h2 class="section-title">新郎新婦のご紹介</h2>', unsafe_allow_html=True)
                 
                 if basic_info.get('groom', {}).get('name'):
-                    st.write(f"**新郎:** {basic_info['groom']['name']} 様")
+                    st.write(f"**新郎:** {basic_info['groom']['name']}")
                 if basic_info.get('bride', {}).get('name'):
-                    st.write(f"**新婦:** {basic_info['bride']['name']} 様")
+                    st.write(f"**新婦:** {basic_info['bride']['name']}")
                 
                 # 結婚式情報の表示
                 if 'wedding_info' in couple_info:
@@ -302,31 +566,25 @@ def main():
                         st.write(f"**結婚式:** {wedding_info['date']}")
                     if wedding_info.get('venue'):
                         st.write(f"**会場:** {wedding_info['venue']}")
-                
-                st.markdown('</div>', unsafe_allow_html=True)
         
         # 旧構造との互換性維持
         elif couple_info.get('groom_name') or couple_info.get('bride_name'):
             display_info = True
-            st.markdown('<div class="couple-info">', unsafe_allow_html=True)
-            st.subheader("新郎新婦のご紹介")
+            st.markdown('<h2 class="section-title">新郎新婦のご紹介</h2>', unsafe_allow_html=True)
             
             if couple_info.get('groom_name'):
-                st.write(f"**新郎:** {couple_info['groom_name']} 様")
+                st.write(f"**新郎:** {couple_info['groom_name']}")
             if couple_info.get('bride_name'):
-                st.write(f"**新婦:** {couple_info['bride_name']} 様")
+                st.write(f"**新婦:** {couple_info['bride_name']}")
             if couple_info.get('wedding_date'):
                 st.write(f"**結婚式:** {couple_info['wedding_date']}")
             if couple_info.get('venue'):
                 st.write(f"**会場:** {couple_info['venue']}")
-            
-            st.markdown('</div>', unsafe_allow_html=True)
         
         # 質問入力フォーム
-        st.markdown('<div class="question-box">', unsafe_allow_html=True)
-        st.subheader("DAIGO & RINへの質問")
+        st.markdown('<h2 class="section-title">AIへの質問</h2>', unsafe_allow_html=True)
         question = st.text_area(
-            "DAIGOとRINに聞きたいことがありましたら、こちらにご記入ください：",
+            "大悟と凜に聞きたいことがありましたら、こちらに入力して下さい。",
             placeholder="例：どこで出会ったのですか？\n例：お互いの第一印象は？\n例：結婚を決めたきっかけは？"
         )
         
@@ -348,17 +606,17 @@ def main():
                     st.warning("新郎新婦の情報を読み込めませんでした。couple_info.jsonファイルを確認してください。")
             else:
                 st.warning("質問を入力してください。")
-        
-        st.markdown('</div>', unsafe_allow_html=True)
     
     with col2:
+        st.markdown('<div class="right-column">', unsafe_allow_html=True)
         st.subheader("使い方")
         st.info("""
-        1. 左のサイドバーで新郎新婦の情報を確認
-        2. 質問を入力してAIに聞く
-        3. AIがDAIGOとRINの代わりに答えてくれます
+        1. 質問を入力してAIに聞く
+        2. AIが大悟さんと凜さんについて詳しく教えてくれます
         """)
+        st.markdown('</div>', unsafe_allow_html=True)
         
+        st.markdown('<div class="right-column">', unsafe_allow_html=True)
         st.subheader("質問例")
         st.write("""
         - どこで出会ったのですか？
@@ -369,6 +627,7 @@ def main():
         - 将来の夢はありますか？
         - ゲストへのメッセージ
         """)
+        st.markdown('</div>', unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
